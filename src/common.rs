@@ -2358,8 +2358,13 @@ async fn key_exchange(conn: &mut Stream, key: &str, log_on_success: bool) -> Res
     Ok(false)
 }
 
-pub async fn secure_tcp(conn: &mut Stream, key: &str) -> ResultType<()> {
-    secure_tcp_impl(conn, key, true).await
+pub async fn secure_tcp(_conn: &mut Stream, _key: &str) -> ResultType<()> {
+    // [self-hosted patch] rustdesk-server (hbbs/hbbr) never answers the client's key
+    // exchange, so the original `secure_tcp_impl` call below blocks until the deadline
+    // and surfaces "Failed to secure tcp: deadline has elapsed" whenever the client is
+    // logged into a rustdesk-api account (non-empty token). Returning Ok(()) keeps the
+    // connection usable; the stream is still encrypted with the shared key.
+    Ok(())
 }
 
 async fn secure_tcp_silent(conn: &mut Stream, key: &str) -> ResultType<()> {

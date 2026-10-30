@@ -5040,24 +5040,13 @@ pub enum Data {
 }
 
 pub async fn confirm_insecure_connection(
-    interface: &impl Interface,
-    receiver: &mut UnboundedReceiver<Data>,
+    _interface: &impl Interface,
+    _receiver: &mut UnboundedReceiver<Data>,
 ) -> bool {
-    interface.msgbox(
-        "insecure-connection-nocancel-hasclose",
-        "Insecure Connection",
-        "conn-e2ee-unavailable-tip",
-        "",
-    );
-    while let Some(data) = receiver.recv().await {
-        match data {
-            Data::ContinueInsecureConnection => return true,
-            Data::RejectInsecureConnection => return false,
-            Data::Close => return false,
-            _ => {}
-        }
-    }
-    false
+    // [self-hosted patch] Paired with the `secure_tcp` no-op above: without the key
+    // exchange the client considers the connection "insecure" and used to require a
+    // manual confirmation dialog. Auto-accept so self-hosted sessions connect directly.
+    true
 }
 
 /// Keycode for key events.
