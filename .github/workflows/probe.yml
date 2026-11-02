@@ -12,20 +12,10 @@ jobs:
           set -x
           getent hosts rustdesk.supeduonline.com || true
           for p in 443 21116 21117 21118 21114; do
-            if timeout 6 bash -c "</dev/tcp/39.170.9.195/$p" 2>/dev/null; then
+            if timeout 8 nc -z 39.170.9.195 $p; then
               echo "TCP $p OPEN"
             else
               echo "TCP $p CLOSED"
             fi
           done
-          python3 - <<'PY'
-import socket
-for p in (21116,):
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.settimeout(3)
-    try:
-        s.sendto(b"\x00" * 8, ("39.170.9.195", p))
-        print(f"UDP {p} sent (no icmp error within 3s means likely open)")
-    except Exception as e:
-        print(f"UDP {p} error {e}")
-PY
+          timeout 8 nc -vzu 39.170.9.195 21116 || true
