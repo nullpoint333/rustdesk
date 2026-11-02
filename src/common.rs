@@ -2460,8 +2460,12 @@ pub const BRANDED_SERVER_DEFAULTS: &[(&str, &str)] = &[
         "rustdesk.supeduonline.com:21116",
     ),
     ("relay-server", "rustdesk.supeduonline.com:21117"),
-    ("api-server", "https://rustdesk.supeduonline.com"),
+    ("api-server", "https://rustdesk.supeduonline.com:4430"),
     ("key", "pTBopHGgGrZ4bf2iyYR9YxtNThsqoEBltA39jzdIdTo="),
+    // Only 4430 is reachable from the internet, so ID and relay both go over the
+    // nginx WebSocket endpoints (/ws/id -> 21118, /ws/relay -> 21119).
+    ("allow-websocket", "Y"),
+    ("websocket-port", "4430"),
 ];
 
 /// Seeded once per config directory. While it exists the defaults are never written again,
