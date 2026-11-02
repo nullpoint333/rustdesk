@@ -121,6 +121,7 @@ impl Drop for SimpleCallOnReturn {
 }
 
 pub fn global_init() -> bool {
+    seed_branded_server_defaults();
     #[cfg(all(target_os = "linux", feature = "drm"))]
     crate::platform::linux::dispatch_wayland_display_probe();
     #[cfg(target_os = "linux")]
@@ -2449,6 +2450,43 @@ pub fn create_symmetric_key_msg(their_pk_b: [u8; 32]) -> (Bytes, Bytes, secretbo
 #[inline]
 pub fn using_public_server() -> bool {
     crate::get_custom_rendezvous_server(get_option("custom-rendezvous-server")).is_empty()
+}
+
+/// Server settings baked into this build so a fresh install reaches our own ID/relay/API
+/// without the user typing anything.
+pub const BRANDED_SERVER_DEFAULTS: &[(&str, &str)] = &[
+    (
+        "custom-rendezvous-server",
+        "rustdesk.supeduonline.com:21116",
+    ),
+    ("relay-server", "rustdesk.supeduonline.com:21117"),
+    ("api-server", "https://rustdesk.supeduonline.com"),
+    ("key", "pTBopHGgGrZ4bf2iyYR9YxtNThsqoEBltA39jzdIdTo="),
+];
+
+/// Seeded once per config directory. While it exists the defaults are never written again,
+/// so a field the user clears stays cleared and RustDesk's public servers are used instead.
+const BRANDED_SERVER_MARKER: &str = ".supeduonline-seeded";
+
+pub fn seed_branded_server_defaults() {
+    let marker = Config::path(BRANDED_SERVER_MARKER);
+    if marker.exists() {
+        return;
+    }
+    for (k, v) in BRANDED_SERVER_DEFAULTS {
+        if Config::get_option(k).is_empty() {
+            let _ = Config::set_option((*k).to_owned(), (*v).to_owned());
+        }
+    }
+    if let Some(dir) = marker.parent() {
+        if let Err(err) = std::fs::create_dir_all(dir) {
+            log::warn!("Failed to create config dir for the branded marker: {}", err);
+            return;
+        }
+    }
+    if let Err(err) = std::fs::write(&marker, b"seeded\n") {
+        log::warn!("Failed to write the branded defaults marker: {}", err);
+    }
 }
 
 pub struct ThrottledInterval {
