@@ -2468,14 +2468,19 @@ pub const BRANDED_SERVER_DEFAULTS: &[(&str, &str)] = &[
     ("websocket-port", "4430"),
 ];
 
-/// Seeded once per config directory. While it exists the defaults are never written again,
-/// so a field the user clears stays cleared and RustDesk's public servers are used instead.
+/// Seeded once per config directory. The file records which defaults generation was applied,
+/// so a newer build can add newly introduced keys without touching anything the user already
+/// has (including keys the user deliberately removed, which stay removed after a seed).
+/// Bump this whenever BRANDED_SERVER_DEFAULTS gains or changes entries.
 const BRANDED_SERVER_MARKER: &str = ".supeduonline-seeded";
+const BRANDED_SERVER_SEED_VERSION: &str = "3";
 
 pub fn seed_branded_server_defaults() {
     let marker = Config::path(BRANDED_SERVER_MARKER);
-    if marker.exists() {
-        return;
+    if let Ok(seeded) = std::fs::read_to_string(&marker) {
+        if seeded.trim() == BRANDED_SERVER_SEED_VERSION {
+            return;
+        }
     }
     for (k, v) in BRANDED_SERVER_DEFAULTS {
         if Config::get_option(k).is_empty() {
@@ -2488,7 +2493,7 @@ pub fn seed_branded_server_defaults() {
             return;
         }
     }
-    if let Err(err) = std::fs::write(&marker, b"seeded\n") {
+    if let Err(err) = std::fs::write(&marker, format!("{}\n", BRANDED_SERVER_SEED_VERSION)) {
         log::warn!("Failed to write the branded defaults marker: {}", err);
     }
 }
